@@ -22,7 +22,7 @@
 		INSERT INTO MAIL_INFO (MAIL_SEQ, TO_MAIL, TITLE, CONTENTS, SEND_TIME)
 		VALUES(
 					  (SELECT NVL(MAX(MAIL_SEQ),0)+1 FROM MAIL_INFO),
-					  #{to_mail}, #{title}, #{contents}, SYSDATE
+					  #{toMail}, #{title}, #{contents}, SYSDATE
 			  )
 	</insert>
 </mapper>
