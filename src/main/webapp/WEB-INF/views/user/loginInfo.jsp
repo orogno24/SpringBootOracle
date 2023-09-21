@@ -1,10 +1,10 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
          pageEncoding="UTF-8" %>
-<%@ page import="kopo.poly.dto.UserInfoDTO" %>
 <%@ page import="kopo.poly.util.CmmUtil" %>
+<%@ page import="kopo.poly.dto.UserInfoDTO" %>
 <%@ page import="kopo.poly.util.EncryptUtil" %>
 <%
-    // UserInfoController 함수에서 model 객체에 저장된 값 불러오기
+    // NoticeController 함수에서 model 객체에 저장된 값 불러오기
     UserInfoDTO rDTO = (UserInfoDTO) request.getAttribute("rDTO");
 %>
 <!DOCTYPE html>
@@ -28,28 +28,14 @@
         $(document).ready(function () {
             // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
             $("#btnEdit").on("click", function () {
-                doEdit(); // 공지사항 수정하기 실행
-            })
-
-            // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
-            $("#btnDelete").on("click", function () {
-                doDelete(); // 공지사항 수정하기 실행
-            })
-
-            // 버튼 클릭했을때, 발생되는 이벤트 생성함(onclick 이벤트와 동일함)
-            $("#btnDelete").on("click", function () {
-                location.href = "/notice/noticeList"; // 공지사항 리스트 이동
-            })
-
-            $("#btnList").on("click", function () {
-                location.href = "/user/userList"; // 공지사항 리스트 이동
+                location.href = "/user/loginResult";
             })
         })
 
         //수정하기
         function doEdit() {
             if (session_user_id === user_id) {
-                location.href = "/user/userEditInfo?nSeq=" + nSeq;
+                location.href = "/notice/noticeEditInfo?nSeq=" + nSeq;
 
             } else if (session_user_id === "") {
                 alert("로그인 하시길 바랍니다.");
@@ -67,14 +53,14 @@
 
                     // Ajax 호출해서 글 삭제하기
                     $.ajax({
-                            url: "/user/userDelete",
+                            url: "/notice/noticeDelete",
                             type: "post", // 전송방식은 Post
                             dataType: "JSON", // 전송 결과는 JSON으로 받기
                             data: {"nSeq": nSeq}, // form 태그 내 input 등 객체를 자동으로 전송할 형태로 변경하기
                             success:
                                 function (json) { // /notice/noticeDelete 호출이 성공했다면..
                                     alert(json.msg); // 메시지 띄우기
-                                    location.href = "/user/userList"; // 공지사항 리스트 이동
+                                    location.href = "/notice/noticeList"; // 공지사항 리스트 이동
                                 }
                         }
                     )
@@ -123,7 +109,7 @@
     </div>
 </div>
 <div>
-    <button id="btnList" type="button">이전 페이지</button>
+    <button id="btnEdit" type="button">이전 페이지</button>
 </div>
 </body>
 </html>

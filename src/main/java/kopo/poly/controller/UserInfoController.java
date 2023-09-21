@@ -1,8 +1,6 @@
 package kopo.poly.controller;
 
-import kopo.poly.dto.MailDTO;
 import kopo.poly.dto.MsgDTO;
-import kopo.poly.dto.NoticeDTO;
 import kopo.poly.dto.UserInfoDTO;
 import kopo.poly.service.IUserInfoService;
 import kopo.poly.util.CmmUtil;
@@ -17,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
-import java.nio.file.OpenOption;
+import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -172,4 +170,144 @@ public class UserInfoController {
         log.info(this.getClass().getName() + ".userInfo End!");
         return "/user/userInfo";
     }
+
+    @GetMapping(value = "loginInfo")
+    public String loginInfo(ModelMap model, HttpSession session) throws Exception {
+        MsgDTO dto = null;
+        String msg = "";
+
+        log.info(this.getClass().getName() + ".loginInfo Start!");
+        String SS_USER_ID = (String) session.getAttribute("SS_USER_ID");
+        log.info("SS_USER_ID : " + SS_USER_ID);
+
+        UserInfoDTO pDTO = new UserInfoDTO();
+        pDTO.setUserId(SS_USER_ID);
+
+        if (CmmUtil.nvl(pDTO.getUserId()).length() == 0) {
+            msg = "아이디와 비밀번호가 올바르지 않습니다.";
+            dto.setMsg(msg);
+            return "user/login";
+        }
+
+        UserInfoDTO rDTO = Optional.ofNullable(userInfoService.getUserInfo(pDTO, true))
+                .orElseGet(UserInfoDTO::new);
+        model.addAttribute("rDTO", rDTO);
+
+        log.info(this.getClass().getName() + ".loginInfo End!");
+
+        return "user/loginInfo";
+    }
+
+    @GetMapping(value = "login")
+    public String login() {
+        log.info(this.getClass().getName() + ".user/login Start!");
+
+        log.info(this.getClass().getName() + ".user/login End!");
+
+        return "/user/login";
+    }
+
+    @ResponseBody
+    @PostMapping(value = "loginProc")
+    public MsgDTO loginProc(HttpServletRequest request, HttpSession session) {
+        log.info(this.getClass().getName() + ".loginProc Start!");
+
+        int res = 0;
+        String msg = "";
+        MsgDTO dto = null;
+
+        UserInfoDTO pDTO = null;
+
+        try {
+            String userId = CmmUtil.nvl(request.getParameter("userId"));
+            String password = CmmUtil.nvl(request.getParameter("password"));
+
+            log.info("userId : " + userId);
+            log.info("password : " + password);
+
+            pDTO = new UserInfoDTO();
+
+            pDTO.setUserId(userId);
+
+            pDTO.setPassword(EncryptUtil.encHashSHA256(password));
+
+            UserInfoDTO rDTO = userInfoService.getLogin(pDTO);
+
+            if (CmmUtil.nvl(rDTO.getUserId()).length() > 0) {
+
+                res = 1;
+
+                msg = "로그인이 성공했습니다.";
+
+                session.setAttribute("SS_USER_ID", userId);
+                session.setAttribute("SS_USER_NAME", CmmUtil.nvl(rDTO.getUserName()));
+            } else {
+                msg = "아이디와 비밀번호가 올바르지 않습니다.";
+            }
+        } catch (Exception e) {
+            msg = "시스템 문제로 로그인이 실패했습니다.";
+            res = 2;
+            log.info(e.toString());
+            e.printStackTrace();
+        } finally {
+            dto = new MsgDTO();
+            dto.setResult(res);
+            dto.setMsg(msg);
+
+            log.info(this.getClass().getName() + ".loginProc End!");
+        }
+
+        return dto;
+    }
+
+    @GetMapping(value = "loginResult")
+    public String loginResult() {
+        log.info(this.getClass().getName() + ".user/loginResult Start!");
+
+        log.info(this.getClass().getName() + ".user/loginResult End!");
+
+        return "/user/loginResult";
+    }
+
+    @ResponseBody
+    @PostMapping(value = "userProc")
+    public MsgDTO userProc(HttpServletRequest request, HttpSession session) {
+        log.info(this.getClass().getName() + ".userProc Start!");
+
+        int res = 0;
+        String msg = "";
+        MsgDTO dto = null;
+
+        UserInfoDTO pDTO = null;
+
+        try {
+            String SS_USER_ID = (String) session.getAttribute("SS_USER_ID");
+
+            log.info("SS_USER_ID : " + SS_USER_ID);
+
+            if (SS_USER_ID != null) {
+
+                res = 1;
+
+                msg = "현재 로그인 상태입니다.\n회원정보 보기 페이지로 이동합니다.";
+
+            } else {
+                msg = "현재 로그아웃 상태입니다.\n로그인을 완료하지 않으면 접속할 수 없습니다.";
+            }
+        } catch (Exception e) {
+            msg = "시스템 문제로 로그인이 실패했습니다.";
+            res = 2;
+            log.info(e.toString());
+            e.printStackTrace();
+        } finally {
+            dto = new MsgDTO();
+            dto.setResult(res);
+            dto.setMsg(msg);
+
+            log.info(this.getClass().getName() + ".userProc End!");
+        }
+
+        return dto;
+    }
+
 }

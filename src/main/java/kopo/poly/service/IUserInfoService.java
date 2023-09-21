@@ -12,4 +12,5 @@ public interface IUserInfoService {
     int insertUserInfo(UserInfoDTO pDTO) throws Exception;
     List<UserInfoDTO> getUserList() throws Exception;
     UserInfoDTO getUserInfo(UserInfoDTO pDTO, boolean type) throws Exception;
+    UserInfoDTO getLogin(UserInfoDTO pDTO) throws Exception;
 }
