@@ -76,6 +76,26 @@ public class UserInfoController {
     }
 
     @ResponseBody
+    @PostMapping(value = "getEmailSend")
+    public UserInfoDTO getEmailSend(HttpServletRequest request) throws Exception {
+
+        log.info(this.getClass().getName() + ".getEmailSend 시작!");
+
+        String email = CmmUtil.nvl(request.getParameter("email"));
+
+        log.info("email : " + email);
+
+        UserInfoDTO pDTO = new UserInfoDTO();
+        pDTO.setEmail(EncryptUtil.encAES128CBC(email));
+
+        UserInfoDTO rDTO = Optional.ofNullable(userInfoService.getEmailSend(pDTO)).orElseGet(UserInfoDTO::new);
+
+        log.info(this.getClass().getName() + ".getEmailSend 끝!");
+
+        return rDTO;
+    }
+
+    @ResponseBody
     @PostMapping(value = "insertUserInfo")
     public MsgDTO insertUserInfo(HttpServletRequest request) throws Exception {
 
@@ -310,4 +330,113 @@ public class UserInfoController {
         return dto;
     }
 
+    @GetMapping(value = "searchUserId")
+    public String searchUserId() {
+        log.info(this.getClass().getName() + ".user/searchUserId Start!");
+
+        log.info(this.getClass().getName() + ".user/searchUserId End!");
+
+        return "/user/searchUserId";
+    }
+
+    @PostMapping(value = "searchUserIdProc")
+    public String searchUserIdProc(HttpServletRequest request, ModelMap model) throws Exception {
+
+        log.info(this.getClass().getName() + ".user/searchUserIdProc Start!");
+
+        String userName = CmmUtil.nvl(request.getParameter("userName"));
+        String email = CmmUtil.nvl(request.getParameter("email"));
+
+        log.info("userName : " + userName);
+        log.info("email : " + email);
+
+        UserInfoDTO pDTO = new UserInfoDTO();
+        pDTO.setUserName(userName);
+        pDTO.setEmail(EncryptUtil.encAES128CBC(email));
+
+        UserInfoDTO rDTO = Optional.ofNullable(userInfoService.searchUserIdOrPasswordProc(pDTO))
+                        .orElseGet(UserInfoDTO::new);
+
+        model.addAttribute("rDTO", rDTO);
+
+        log.info(this.getClass().getName() + ".user/searchUserIdProc End!");
+
+        return "/user/searchUserIdResult";
+    }
+
+    @GetMapping(value = "searchPassword")
+    public String searchPassword(HttpSession session) {
+        log.info(this.getClass().getName() + ".user/searchPassword Start!");
+
+        session.setAttribute("NEW_PASSWORD", "");
+        session.removeAttribute("NEW_PASSWORD");
+
+        log.info(this.getClass().getName() + ".user/searchPassword End!");
+
+        return "/user/searchPassword";
+    }
+
+    @PostMapping(value = "searchPasswordProc")
+    public String searchPasswordProc(HttpServletRequest request, ModelMap model, HttpSession session) throws Exception {
+        log.info(this.getClass().getName() + ".user/searchPasswordProc Start!");
+
+        String userId = CmmUtil.nvl(request.getParameter("userId"));
+        String userName = CmmUtil.nvl(request.getParameter("userName"));
+        String email = CmmUtil.nvl(request.getParameter("email"));
+
+        log.info("userId : " + userId);
+        log.info("userName : " + userName);
+        log.info("email : " + email);
+
+        UserInfoDTO pDTO = new UserInfoDTO();
+        pDTO.setUserId(userId);
+        pDTO.setUserName(userName);
+        pDTO.setEmail(EncryptUtil.encAES128CBC(email));
+
+        UserInfoDTO rDTO = Optional.ofNullable(userInfoService.searchUserIdOrPasswordProc(pDTO)).orElseGet(UserInfoDTO::new);
+
+        model.addAttribute("rDTO", rDTO);
+
+        session.setAttribute("NEW_PASSWORD", userId);
+
+        log.info(this.getClass().getName() + ".user/searchPasswordProc End!");
+
+        return "user/newPassword";
+    }
+
+    @PostMapping(value = "newPasswordProc")
+    public String newPasswordProc(HttpServletRequest request, ModelMap model, HttpSession session) throws Exception {
+
+        log.info(this.getClass().getName() + ".user/newPasswordProc Start!");
+
+        String msg = "";
+
+        String newPassword = CmmUtil.nvl((String) session.getAttribute("NEW_PASSWORD"));
+
+        if (newPassword.length() > 0) {
+
+            String password = CmmUtil.nvl(request.getParameter("password"));
+
+            log.info("password : " + password);
+
+            UserInfoDTO pDTO = new UserInfoDTO();
+            pDTO.setUserId(newPassword);
+            pDTO.setPassword(EncryptUtil.encHashSHA256(password));
+
+            userInfoService.newPasswordProc(pDTO);
+
+            session.setAttribute("NEW_PASSWORD", "");
+            session.removeAttribute("NEW_PASSWORD");
+
+            msg = "비밀번호가 재설정되었습니다.";
+        } else {
+            msg = "비정상 접근입니다.";
+        }
+
+        model.addAttribute("msg", msg);
+
+        log.info(this.getClass().getName() + ".user/newPasswordProc End!");
+
+        return "user/newPasswordResult";
+    }
 }

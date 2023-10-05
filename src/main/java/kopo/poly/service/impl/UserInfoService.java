@@ -77,6 +77,38 @@ public class UserInfoService implements IUserInfoService {
     }
 
     @Override
+    public UserInfoDTO getEmailSend(UserInfoDTO pDTO) throws Exception {
+
+        log.info(this.getClass().getName() + ".getEmailSend 시작!");
+
+        UserInfoDTO rDTO = userInfoMapper.getEmailExists(pDTO);
+
+        // 6자리 랜덤 숫자 생성하기
+        int mailNumber = ThreadLocalRandom.current().nextInt(100000, 1000000);
+
+        log.info("mailNumber : " + mailNumber);
+
+        // 인증번호 발송 로직
+        MailDTO dto = new MailDTO();
+
+        dto.setTitle("이메일 중복 확인 인증번호 발송 메일");
+        dto.setContents("인증번호는 " + mailNumber + " 입니다.");
+        dto.setToMail(EncryptUtil.decAES128CBC(CmmUtil.nvl(pDTO.getEmail())));
+
+        mailService.doSendMail(dto); // 이메일 발송
+
+        dto = null;
+
+        rDTO.setMailNumber(mailNumber); // 인증번호를 결과값에 넣어주기
+
+//        log.info(rDTO.getMailNumber());
+
+        log.info(this.getClass().getName() + ".getEmailSend 끝!"); // 인증번호를 결과값에 넣어주기
+
+        return rDTO;
+    }
+
+    @Override
     public int insertUserInfo(UserInfoDTO pDTO) throws Exception {
 
         log.info(this.getClass().getName() + ".insertUserInfo 시작!");
@@ -176,6 +208,30 @@ public class UserInfoService implements IUserInfoService {
         log.info(this.getClass().getName() + ".getLogin End!");
 
         return rDTO;
+    }
+
+    @Override
+    public UserInfoDTO searchUserIdOrPasswordProc(UserInfoDTO pDTO) throws Exception {
+
+        log.info(this.getClass().getName() + ".searchUserIdOrPasswordProc Start!");
+
+        UserInfoDTO rDTO = userInfoMapper.getUserId(pDTO);
+
+        log.info(this.getClass().getName() + ".searchUserIdOrPasswordProc End!");
+
+        return rDTO;
+    }
+
+    @Override
+    public int newPasswordProc(UserInfoDTO pDTO) throws Exception {
+
+        log.info(this.getClass().getName() + ".newPasswordProc Start!");
+
+        int success = userInfoMapper.updatePassword(pDTO);
+
+        log.info(this.getClass().getName() + ".newPasswordProc End!");
+
+        return success;
     }
 
 }
