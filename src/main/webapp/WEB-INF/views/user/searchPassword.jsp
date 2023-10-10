@@ -72,8 +72,8 @@
                     return;
                 }
 
-                if (f.mailNumber.value !== emailMailNumber.toString()) {
-                    alert("이메일 인증번호가 일치하지 않습니다.");
+                if (emailCheck === "N") {
+                    alert("이메일 인증을 해주세요.");
                     f.mailNumber.focus();
                     return;
                 }
@@ -84,8 +84,7 @@
                 f.submit();
             })
 
-
-            $("#btnSearchPassword").on("click", function () {
+            $("#btnNumber").on("click", function () {
 
                 if (f.mailNumber.value === "") {
                     alert("이메일 인증번호를 입력하세요.");
@@ -99,9 +98,10 @@
                     return;
                 } else {
                     alert("이메일 인증이 성공했습니다!");
-                    userIdCheck = "Y";
+                    emailCheck = "Y";
                 }
             })
+
 
         })
     </script>

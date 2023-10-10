@@ -60,7 +60,6 @@
 	<delete id="deleteNoticeInfo" parameterType="NoticeDTO">
 		DELETE FROM NOTICE
 		WHERE NOTICE_SEQ = #{noticeSeq}
-			
 	</delete>
 			
 </mapper>
