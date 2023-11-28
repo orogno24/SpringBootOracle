@@ -1,10 +1,12 @@
 package kopo.poly.service;
 
 import kopo.poly.dto.FoodDTO;
+import kopo.poly.dto.OcrDTO;
 
 import java.util.List;
 
-public interface IFoodService {
+public interface IOcrService {
 
-    List<FoodDTO> toDayFood() throws Exception;
+    OcrDTO getReadforImageText(OcrDTO pDTO) throws Exception;
+
 }

@@ -1,44 +1,18 @@
 package kopo.poly.util;
 
-public class CmmUtil {
-	public static String nvl(String str, String chg_str) {
-		String res;
+import java.io.File;
 
-		if (str == null) {
-			res = chg_str;
-		} else if (str.equals("")) {
-			res = chg_str;
-		} else {
-			res = str;
+public class FileUtil {
+	public static String mkdirForDate(String uploadDir) {
+
+		String path = uploadDir + DateUtil.getDateTime("yyyy/MM/dd");
+
+		File Folder = new File(path);
+
+		if (!Folder.exists()) {
+			Folder.mkdirs();
 		}
-		return res;
+		return path;
 	}
-	
-	public static String nvl(String str){
-		return nvl(str,"");
-	}
-	
-	public static String checked(String str, String com_str){
-		if(str.equals(com_str)){
-			return " checked";
-		}else{
-			return "";
-		}
-	}
-	
-	public static String checked(String[] str, String com_str){
-		for(int i=0;i<str.length;i++){
-			if(str[i].equals(com_str))
-				return " checked";
-		}
-		return "";
-	}
-	
-	public static String select(String str,String com_str){
-		if(str.equals(com_str)){
-			return " selected";
-		}else{
-			return "";
-		}
-	}
+
 }

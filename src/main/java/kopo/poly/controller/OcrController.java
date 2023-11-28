@@ -1,167 +1,104 @@
 package kopo.poly.controller;
 
-import kopo.poly.dto.MailDTO;
-import kopo.poly.dto.MsgDTO;
-import kopo.poly.dto.NoticeDTO;
-import kopo.poly.service.IMailService;
+import kopo.poly.dto.OcrDTO;
+import kopo.poly.service.IOcrService;
 import kopo.poly.util.CmmUtil;
+import kopo.poly.util.DateUtil;
+import kopo.poly.util.FileUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.File;
 import java.util.Optional;
 
 @Slf4j
-@RequestMapping(value = "/mail")
+@RequestMapping(value = "/ocr")
 @RequiredArgsConstructor
 @Controller
-public class MailController {
+public class OcrController {
 
-    private final IMailService mailService; // 메일 발송을 위한 서비스 객체를 사용하기
+    private final IOcrService ocrService;
 
-    /**
-     * 메일 발송하기폼
-     */
+    final private String FILE_UPLOAD_SAVE_PATH = "c:/upload";
 
-    @GetMapping(value = "mailForm")
-    public String mailForm() throws Exception {
-        log.info(this.getClass().getName() + "mailForm Start!");
+    @GetMapping(value = "uploadImage")
+    public String uploadImage() {
+        log.info(this.getClass().getName() + "uploadImage!");
 
-        return "/mail/mailForm";
+        return "/ocr/uploadImage";
     }
 
     /**
-     * 메일 발송하기
+     * 파일업로드 및 이미지 인식
+     * RequestParam은 쪼개질 대상을 선택
+     * MultipartFile는 패킷 단위로 쪼개진 이미지를 합치는 용도
      */
-    @ResponseBody
-    @PostMapping(value = "sendMail")
-    public MsgDTO sendMAil(HttpServletRequest request, ModelMap model) throws Exception {
-        log.info(this.getClass().getName() + ".sendMail Start!");
+    @PostMapping(value = "readImage")
+    public String readImage(ModelMap model, @RequestParam(value = "fileUpload")MultipartFile mf)
+            throws Exception {
 
-        String msg = ""; // 발송 결과 메시지
+        log.info(this.getClass().getName() + ".readImage Start!");
 
-        // 웹 URL로부터 전달받는 값들
-        String to_mail = CmmUtil.nvl(request.getParameter("to_mail"));
-        String title = CmmUtil.nvl(request.getParameter("title"));
-        String contents = CmmUtil.nvl(request.getParameter("contents"));
+        // OCR 실행 결과
+        String res = "";
 
-        log.info("to_mail : " + to_mail);
-        log.info("title : " + title);
-        log.info("contents : " + contents);
+        // 업로드하는 실제 파일명
+        // 다운로드 기능 구현시, 임의로 정의된 파일명을 원래대로 만들어주기 위한 목적
+        String originalFileName = mf.getOriginalFilename();
 
-        // 메일 발송할 정보를 넣기 위한 DTO 객체 생성하기
-        MailDTO pDTO = new MailDTO();
+        // 파일 확장자 가져오기(파일 확장자를 포함한 전체 이름(myimage.jpg)에서 뒤쪽부터 .이 존재하는 위치 찾기
+        String ext = originalFileName.substring(originalFileName.lastIndexOf(".") + 1,
+                originalFileName.length()).toLowerCase();
 
-        // 웹에서 받은 값을 DTO에 넣기
-        pDTO.setToMail(to_mail); // 받는 사람을 DTO 저장
-        pDTO.setTitle(title); // 제목을 DTO 저장
-        pDTO.setContents(contents); // 내용을 DTO 저장
+        // 이미지 파일만 실행되도록 함
+        if (ext.equals("jpeg") || ext.equals("jpg") || ext.equals("gif") || ext.equals("png")) {
 
-        // 메일발송하기
-        int res = mailService.doSendMail(pDTO);
+            // 웹서버에 저장되는 파일 이름
+            // 업로드하는 파일 이름에 한글, 특수 문자들이 저장될 수 있기 때문에 강제로 영어와 숫자로 구성된 파일명으로 변경해서 저장한다.
+            // 리눅스나 유닉스 등 운영체제는 다국어 지원에 취약하기 때문이다.
+            String saveFileName = DateUtil.getDateTime("HHmmss") + "." + ext;
 
-        if (res == 1) { // 메일발송 성공
-            mailService.insertMailInfo(pDTO);
-            msg = "메일 발송하였습니다.";
+            // 웹서버에 업록드한 파일 저장하는 물리적 경로
+            String saveFilePath = FileUtil.mkdirForDate(FILE_UPLOAD_SAVE_PATH);
+
+            String fullFileInfo = saveFilePath + "/" + saveFileName;
+
+            log.info("ext : " + ext);
+            log.info("saveFileName : " + saveFileName);
+            log.info("saveFilePath : " + saveFilePath);
+            log.info("fullFileInfo : " + fullFileInfo);
+
+            // 업로드 되는 파일을 서버에 저장
+            mf.transferTo(new File(fullFileInfo));
+
+            OcrDTO pDTO = new OcrDTO();
+
+            pDTO.setFileName(saveFileName);
+            pDTO.setFilePath(saveFilePath);
+            pDTO.setExt(ext);
+            pDTO.setOrgFileName(originalFileName);
+            pDTO.setRegId("admin");
+
+            // ocrService.getReadforImageText(pDTO) 결과를 Null 값 체크하여 rDTO 객체에 저장하기
+            OcrDTO rDTO = Optional.ofNullable(ocrService.getReadforImageText(pDTO)).orElseGet(OcrDTO::new);
+
+            res = CmmUtil.nvl(rDTO.getTextFromImage()); // 인식 결과
+
+            rDTO = null;
+            pDTO = null;
         } else {
-            msg = "메일 발송 실패하였습니다.";
+            res = "이미지 파일이 아니라서 인식이 불가능합니다.";
         }
 
-        log.info(msg);
+        model.addAttribute("res", res);
 
-        // 결과 메시지 전달하기
-        MsgDTO dto = new MsgDTO();
-        dto.setMsg(msg);
+        log.info(this.getClass().getName() + "readImage End!");
 
-        log.info(this.getClass().getName() + ".sendMail End!");
-
-        return dto;
+        return "ocr/readImage";
     }
 
-    @GetMapping(value = "mailList")
-    public String mailList(ModelMap model) throws Exception {
-        log.info(this.getClass().getName() + ".mailList 시작!");
-
-        List<MailDTO> rList = Optional.ofNullable(mailService.getMailList())
-                .orElseGet(ArrayList::new);
-
-        model.addAttribute("rList", rList);
-
-        log.info(this.getClass().getName() + ".mailList End!");
-
-        return "/mail/mailList";
-    }
-
-    @ResponseBody
-    @PostMapping(value = "mailInsert")
-    public String noticeInsert(HttpServletRequest request, HttpSession session) {
-
-        log.info(this.getClass().getName() + ".mailInsert Start!");
-
-        String msg = ""; // 메시지 내용
-
-        MsgDTO dto = null; // 결과 메시지 구조
-
-        try {
-            // 로그인된 사용자 아이디를 가져오기
-            // 로그인을 아직 구현하지 않았기에 공지사항 리스트에서 로그인 한 것처럼 Session 값을 저장함
-            String mail_seq = CmmUtil.nvl(request.getParameter("mail_seq")); // 제목
-            String to_mail = CmmUtil.nvl(request.getParameter("to_mail")); // 제목
-            String title = CmmUtil.nvl(request.getParameter("title")); // 공지글 여부
-            String contents = CmmUtil.nvl(request.getParameter("contents")); // 내용
-            String send_time = CmmUtil.nvl(request.getParameter("send_time")); // 내용
-
-            /*
-             * ####################################################################################
-             * 반드시, 값을 받았으면, 꼭 로그를 찍어서 값이 제대로 들어오는지 파악해야함 반드시 작성할 것
-             * ####################################################################################
-             */
-            log.info("mail_seq: " + mail_seq);
-            log.info("to_mail : " + to_mail);
-            log.info("title : " + title);
-            log.info("contents : " + contents);
-            log.info("send_time : " + send_time);
-
-            // 데이터 저장하기 위해 DTO에 저장하기
-            MailDTO pDTO = new MailDTO();
-            pDTO.setMailSeq(mail_seq);
-            pDTO.setToMail(to_mail);
-            pDTO.setTitle(title);
-            pDTO.setContents(contents);
-            pDTO.setSendTime(send_time);
-
-            /*
-             * 게시글 등록하기위한 비즈니스 로직을 호출
-             */
-            mailService.insertMailInfo(pDTO);
-
-            // 저장이 완료되면 사용자에게 보여줄 메시지
-            msg = "등록되었습니다.";
-
-        } catch (Exception e) {
-
-            // 저장이 실패되면 사용자에게 보여줄 메시지
-            msg = "실패하였습니다. : " + e.getMessage();
-            log.info(e.toString());
-            e.printStackTrace();
-
-        } finally {
-            // 결과 메시지 전달하기
-            dto = new MsgDTO();
-            dto.setMsg(msg);
-
-            log.info(this.getClass().getName() + ".mailInsert End!");
-        }
-
-        return "/redirect";
-    }
 }

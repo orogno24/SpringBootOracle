@@ -1,31 +1,58 @@
 package kopo.poly.controller;
 
-import kopo.poly.util.CmmUtil;
+import kopo.poly.chat.ChatHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
+import java.util.Set;
 
 @Slf4j
 @Controller
-public class MainController {
+@RequestMapping(value = "/chat")
+public class ChatController {
 
-    @GetMapping("/redirect")
-    public String redirectPage(HttpServletRequest request, ModelMap modelMap) throws Exception {
-        log.info(this.getClass().getName() + ".redirect 페이지 보여주는 함수 실행");
-        String msg = CmmUtil.nvl(request.getParameter("msg"), "로그인해주세요.");
-        modelMap.addAttribute("msg", msg);
-        modelMap.addAttribute("url", "/user/login");
-        return "/redirect";
+    /**
+     * 채팅창 입장 전
+     */
+    @GetMapping(value = "intro")
+    public String intro() {
+
+        log.info(this.getClass().getName() + ".intro Start!");
+
+        log.info(this.getClass().getName() + ".intro Ends!");
+
+        return "/chat/intro";
     }
 
-    @GetMapping(value = "login2")
-    public String login2() {
-        log.info(this.getClass().getName() + ".user/login2 Start!");
-        log.info(this.getClass().getName() + ".user/login2 End!");
-        return "/user2/login2";
+    /**
+     * 채팅창 접속
+     */
+    @PostMapping(value = "chatroom")
+    public String chatroom() {
+
+        log.info(this.getClass().getName() + ".chatroom Start!");
+
+        log.info(this.getClass().getName() + ".chatroom End!");
+
+        return "/chat/chatroom";
     }
 
+    /**
+     * 채팅방 목록
+     */
+    @RequestMapping(value = "roomList")
+    @ResponseBody
+    public Set<String> roomList() {
+
+        log.info(this.getClass().getName() + ".roomList Start!");
+
+        log.info(this.getClass().getName() + ".roomList Ends!");
+
+        return ChatHandler.roomInfo.keySet();
+
+    }
 }

@@ -1,64 +1,99 @@
 package kopo.poly.service.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import kopo.poly.dto.WeatherDTO;
+import kopo.poly.dto.WeatherDailyDTO;
 import kopo.poly.service.IWeatherService;
 import kopo.poly.util.CmmUtil;
+import kopo.poly.util.DateUtil;
+import kopo.poly.util.NetworkUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 @Slf4j
 @Service
 public class WeatherService implements IWeatherService {
 
+    @Value("${weather.api.key}")
+    private String apiKey;
+
     @Override
-    public List<WeatherDTO> toDayWeather() throws Exception {
+    public WeatherDTO getWeather(WeatherDTO pDTO) throws Exception {
 
-        log.info(this.getClass().getName() + ".toDayWeather 시작!");
+        log.info(this.getClass().getName() + ".getWeather Start!");
 
-        int res = 0;
+        String lat = CmmUtil.nvl(pDTO.getLat());
+        String lon = CmmUtil.nvl(pDTO.getLon());
 
-        String url = "https://weather.naver.com";
+        String apiParam = "?lat=" + lat + "&lon=" + lon + "&appid=" + apiKey + "&units=metric";
+        log.info("apiParam " + apiParam);
 
-        Document doc = null;
+        String json = NetworkUtil.get(IWeatherService.apiURL + apiParam);
+        log.info("json " + json);
 
-        doc = Jsoup.connect(url).get();
+        Map<String, Object> rMap = new ObjectMapper().readValue(json, LinkedHashMap.class);
 
+        Map<String, Double> current = (Map<String, Double>) rMap.get("current");
 
-        Elements element = doc.select("div.weather_now");
-        Elements locationElement = doc.select("strong.location_name");
+        double currentTemp = current.get("temp");
+        log.info("현재 기온 : " + currentTemp);
 
-        Iterator<Element> weatherDescription = element.select("span.weather").iterator();
-        Iterator<Element> currentTemperature = element.select("strong.current").iterator();
-        Iterator<Element> currentLocation = locationElement.iterator();
+        List<Map<String, Object>> daliyList = (List<Map<String, Object>>) rMap.get("daily");
 
-        List<WeatherDTO> pList = new ArrayList<>();
+        List<WeatherDailyDTO> pList = new LinkedList<>();
 
-        WeatherDTO pDTO = new WeatherDTO();
+        for (Map<String, Object> dailyMap : daliyList) {
+            String day = DateUtil.getLongDateTime(dailyMap.get("dt"), "yyyy-MM-dd");
+            String sunrise = DateUtil.getLongDateTime(dailyMap.get("sunrise"));
+            String sunset = DateUtil.getLongDateTime(dailyMap.get("sunset"));
+            String moonrise = DateUtil.getLongDateTime(dailyMap.get("moonrise"));
+            String moonset = DateUtil.getLongDateTime(dailyMap.get("moonset"));
 
-        String locationText = weatherDescription.next().text();
-        String status1Text = currentTemperature.next().text();
-        String status2Text = currentLocation.next().text();
+            log.info("-------------------------------------------------");
+            log.info("today : " + day);
+            log.info("해뜨는 시간 : " + sunrise);
+            log.info("해지는 시간 : " + sunset);
+            log.info("달뜨는 시간 : " + moonrise);
+            log.info("달지는 시간 : " + moonset);
 
-        log.info("location : " + locationText);
-        log.info("status1 : " + status1Text);
-        log.info("status2 : " + status2Text);
+            Map<String, Double> dailyTemp = (Map<String, Double>) dailyMap.get("temp");
 
-        pDTO.setLocation(locationText);
-        pDTO.setStatus1(status1Text.substring(5));
-        pDTO.setStatus2(status2Text);
+            String dayTemp = String.valueOf(dailyTemp.get("day"));
+            String dayTempMax = String.valueOf(dailyTemp.get("max"));
+            String dayTempMin = String.valueOf(dailyTemp.get("min"));
 
-        pList.add(pDTO);
+            log.info("평균 기온 : " + dayTemp);
+            log.info("최고 기온 : " + dayTempMax);
+            log.info("최저 기온 : " + dayTempMin);
 
-        log.info(this.getClass().getName() + ".toDayWeather End!");
+            WeatherDailyDTO wdDTO = new WeatherDailyDTO();
 
-        return pList;
+            wdDTO.setDay(day);
+            wdDTO.setSunrise(sunrise);
+            wdDTO.setSunset(sunset);
+            wdDTO.setMoonrise(moonrise);
+            wdDTO.setMoonset(moonset);
+            wdDTO.setDayTemp(dayTemp);
+            wdDTO.setDayTempMax(dayTempMax);
+            wdDTO.setDayTempMin(dayTempMin);
+
+            pList.add(wdDTO);
+
+            wdDTO = null;
+        }
+
+        WeatherDTO rDTO = new WeatherDTO();
+
+        rDTO.setLat(lat);
+        rDTO.setLon(lon);
+        rDTO.setCurrentTemp(currentTemp);
+        rDTO.setDailyList(pList);
+
+        log.info(this.getClass().getName() + ".getWeather End!");
+
+        return rDTO;
     }
 }

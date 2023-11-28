@@ -1,64 +1,44 @@
 package kopo.poly.service.impl;
 
-import kopo.poly.dto.FoodDTO;
-import kopo.poly.service.IFoodService;
+import kopo.poly.dto.OcrDTO;
+import kopo.poly.service.IOcrService;
 import kopo.poly.util.CmmUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
+import net.sourceforge.tess4j.ITesseract;
+import net.sourceforge.tess4j.Tesseract;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.io.File;
 
 @Slf4j
 @Service
-public class FoodService implements IFoodService {
+public class OcrService implements IOcrService {
+
+    @Value("${ocr.model.data}")
+    private String ocrModel;
 
     @Override
-    public List<FoodDTO> toDayFood() throws Exception {
+    public OcrDTO getReadforImageText(OcrDTO pDTO) throws Exception {
+        log.info(this.getClass().getName() + ".getReadforImageText start!");
 
-        log.info(this.getClass().getName() + ".todayFood 시작!");
+        File imageFile = new File(CmmUtil.nvl(pDTO.getFilePath()) + "//" + CmmUtil.nvl(pDTO.getFileName()));
 
-        int res = 0;
+        ITesseract instance = new Tesseract();
 
-        String url = "https://www.kopo.ac.kr/kangseo/content.do?menu=262";
+        instance.setDatapath(ocrModel);
 
-        Document doc = null;
+        instance.setLanguage("kor");
 
-        doc = Jsoup.connect(url).get();
+        String result = instance.doOCR(imageFile);
 
-        Elements element = doc.select("table.tbl_table tbody");
+        pDTO.setTextFromImage(result);
 
-        Iterator<Element> foodIt = element.select("tr").iterator();
+        log.info("result : " + result);
 
-        FoodDTO pDTO = null;
+        log.info(this.getClass().getName() + ".getReadforImageText End!");
 
-        List<FoodDTO> pList = new ArrayList<>();
-        int idx = 0;
-
-        while (foodIt.hasNext()) {
-            if (idx++ > 4) {
-                break;
-            }
-
-        pDTO = new FoodDTO();
-
-        String food = CmmUtil.nvl(foodIt.next().text()).trim();
-
-        log.info("food : " + food);
-
-        pDTO.setDay(food.substring(0, 3));
-        pDTO.setFood_nm(food.substring(4));
-
-        pList.add(pDTO);
-        }
-        log.info(this.getClass().getName() + ".toDayFood End!");
-
-        return pList;
+        return pDTO;
     }
 }
 

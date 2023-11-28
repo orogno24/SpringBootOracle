@@ -1,16 +1,19 @@
 package kopo.poly.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class OcrDTO {
-    private String filePath;
-    private String fileName;
-    private String textFromImage;
-    private String orgFileName;
-    private String ext;
-    private String regId;
-    private String chgId;
+@JsonInclude(JsonInclude.Include.NON_DEFAULT)
+public class PapagoDTO {
+    private String langCode;
+    private String text;
+
+    private String translatedText;
+
+    private String scrLangType;
+
+    private String tarLangType;
 }

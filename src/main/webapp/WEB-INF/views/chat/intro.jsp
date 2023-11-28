@@ -1,56 +1,83 @@
 <%@ page language="java" contentType="text/html; charset=UTF-8"
          pageEncoding="UTF-8" %>
-<%@ page import="java.util.List" %>
-<%@ page import="kopo.poly.dto.MailDTO" %>
-<%@ page import="kopo.poly.util.CmmUtil" %>
-
-<%
-    List<MailDTO> rList = (List<MailDTO>) request.getAttribute("rList");
-%>
-
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>메일 리스트</title>
+    <title>채팅방 입장 및 채팅 리스트</title>
     <link rel="stylesheet" href="/css/table.css"/>
     <script type="text/javascript" src="/js/jquery-3.6.0.min.js"></script>
     <script type="text/javascript">
+
+        // HTML로딩이 완료되고, 실행됨
+        $(document).ready(function () {
+
+            //화면 로딩이 완료되면 첫번째로 실행함
+            getRoomList(); //전체 채팅방 리스트 가져오기
+
+            //2번쨰부터 채팅방 전체리스트를 5초마다 로딩함
+            setInterval("getRoomList()", 5000);
+
+        })
+
+        //전체 채팅방 리스트 가져오기
+        function getRoomList() {
+
+            //Ajax 호출
+            $.ajax({
+                url: "/chat/roomList", // 채팅방 정보 가져올 URL
+                type: "post", // 전송방식
+                dataType: "JSON", // 전달받을 데이터 타입
+                success: function (json) {
+
+                    // 기존 데이터 삭제하기
+                    $("#room_list").empty();
+
+                    for (let i = 0; i < json.length; i++) {
+                        $("#room_list").append(json[i] + "<br/>"); // 채팅방마다 한줄씩 추가
+
+                    }
+                }
+            })
+
+        }
     </script>
 </head>
 <body>
-<h2>이메일 확인</h2>
-<hr/>
-<br/>
-
-<% if (rList == null || rList.isEmpty()) { %>
-게시글을 찾을 수 없습니다.
-<% } else { %>
-
+<h1>채팅방 전체 리스트</h1>
 <div class="divTable minimalistBlack">
     <div class="divTableHeading">
         <div class="divTableRow">
-            <div class="divTableHead">순번</div>
-            <div class="divTableHead">받는 사람</div>
-            <div class="divTableHead">제목</div>
-            <div class="divTableHead">내용</div>
-            <div class="divTableHead">발송시간</div>
+            <div class="divTableHead">대화가능한 채팅방들</div>
         </div>
     </div>
     <div class="divTableBody">
-        <% for (MailDTO dto : rList) { %>
         <div class="divTableRow">
-            <div class="divTableCell"><%=CmmUtil.nvl(dto.getMailSeq())%></div>
-            <div class="divTableCell"><%=CmmUtil.nvl(dto.getToMail())%></div>
-            <div class="divTableCell"><%=CmmUtil.nvl(dto.getTitle())%></div>
-            <div class="divTableCell"><%=CmmUtil.nvl(dto.getContents())%></div>
-            <div class="divTableCell"><%=CmmUtil.nvl(dto.getSendTime())%></div>
+            <div class="divTableCell" id="room_list"></div>
         </div>
-        <% } %>
     </div>
 </div>
-
-<% } %>
-
+<br/><br/>
+<h1>채팅방 입장 정보</h1>
+<hr/>
+<br/><br/>
+<form name="f" id="f" method="post" action="/chat/chatroom">
+    <div class="divTable minimalistBlack">
+        <div class="divTableBody">
+            <div class="divTableRow">
+                <div class="divTableCell">채팅방 이름</div>
+                <div class="divTableCell">
+                    <input type="text" name="roomName">
+                </div>
+                <div class="divTableCell">대화명(별명)</div>
+                <div class="divTableCell">
+                    <input type="text" name="userName">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <button>입장하기</button>
+    </div>
+</form>
 </body>
 </html>

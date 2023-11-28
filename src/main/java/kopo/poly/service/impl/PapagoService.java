@@ -1,44 +1,150 @@
 package kopo.poly.service.impl;
 
-import kopo.poly.dto.OcrDTO;
-import kopo.poly.service.IOcrService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import kopo.poly.dto.PapagoDTO;
+import kopo.poly.service.IPapagoService;
 import kopo.poly.util.CmmUtil;
+import kopo.poly.util.NetworkUtil;
 import lombok.extern.slf4j.Slf4j;
-import net.sourceforge.tess4j.ITesseract;
-import net.sourceforge.tess4j.Tesseract;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.File;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Slf4j
 @Service
-public class OcrService implements IOcrService {
+public class PapagoService implements IPapagoService {
 
-    @Value("${ocr.model.data}")
-    private String ocrModel;
+    @Value("${naver.papago.clientId}")
+    private String clientId;
+
+    @Value("${naver.papago.clientSecret}")
+    private String clientSecret;
+
+    private Map<String, String> setNaverInfo() {
+        Map<String, String> requestHeader = new HashMap<>();
+        requestHeader.put("X-Naver-Client-Id", clientId);
+        requestHeader.put("X-Naver-Client-Secret", clientSecret);
+
+        log.info("clientId : " + clientId);
+        log.info("clientSecret : " + clientSecret);
+
+        return requestHeader;
+    }
 
     @Override
-    public OcrDTO getReadforImageText(OcrDTO pDTO) throws Exception {
-        log.info(this.getClass().getName() + ".getReadforImageText start!");
+    public PapagoDTO detectLangs(PapagoDTO pDTO) throws Exception {
 
-        File imageFile = new File(CmmUtil.nvl(pDTO.getFilePath()) + "//" + CmmUtil.nvl(pDTO.getFileName()));
+        log.info(this.getClass().getName() + ".detectLangs Start!");
 
-        ITesseract instance = new Tesseract();
+        String text = CmmUtil.nvl(pDTO.getText());
 
-        instance.setDatapath(ocrModel);
+        String param = "query=" + URLEncoder.encode(text, "UTF-8");
 
-        instance.setLanguage("kor");
+        String json = NetworkUtil.post(IPapagoService.detectLangsApiURL, this.setNaverInfo(), param);
 
-        String result = instance.doOCR(imageFile);
+        log.info("json : " + json);
 
-        pDTO.setTextFromImage(result);
+        PapagoDTO rDTO = new ObjectMapper().readValue(json, PapagoDTO.class);
 
-        log.info("result : " + result);
+        rDTO.setText(text);
 
-        log.info(this.getClass().getName() + ".getReadforImageText End!");
+        log.info(this.getClass().getName() + ".detextLangs End!");
 
-        return pDTO;
+        return rDTO;
+
     }
+
+    @Override
+    public PapagoDTO detectlangs(PapagoDTO pDTO) throws Exception {
+
+        log.info(this.getClass().getName() + ".detectLang Start!");
+
+        String text = CmmUtil.nvl(pDTO.getText());
+
+        String param = "query=" + URLEncoder.encode(text, "UTF-8");
+
+        String json = NetworkUtil.post(IPapagoService.detectLangsApiURL, this.setNaverInfo(), param);
+
+        log.info("json : " + json);
+
+        PapagoDTO rDTO = new ObjectMapper().readValue(json, PapagoDTO.class);
+
+        rDTO.setText(text);
+
+        log.info(this.getClass().getName() + "detectLangs End!");
+
+        return rDTO;
+    }
+
+    @Override
+    public PapagoDTO translate(PapagoDTO pDTO) throws Exception {
+
+        log.info(this.getClass().getName() + ".translate Start!");
+
+        PapagoDTO rDTO = this.detectlangs(pDTO);
+
+        String langCode = CmmUtil.nvl(rDTO.getLangCode());
+
+        rDTO = null;
+
+        String source = "";
+        String target = "";
+
+        if (langCode.equals("ko")) {
+            source = "ko";
+            target = "en";
+        } else if (langCode.equals("en")) {
+            source = "en";
+            target = "ko";
+        } else {
+            new Exception("한국어와 영어만 번역됩니다.");
+        }
+
+        String text = CmmUtil.nvl(pDTO.getText());
+
+        String postParams = "source=" + source + "&target=" + target + "&text=" + URLEncoder.encode(text, "UTF-8");
+
+        log.info("postParams : " + postParams);
+
+        String json = NetworkUtil.post(IPapagoService.translateApiURL, this.setNaverInfo(), postParams);
+
+        log.info("json : " + json);
+
+        Map<String, Object> rMap = new ObjectMapper().readValue(json, LinkedHashMap.class);
+
+        Map<String, Object> messageMap = (Map<String, Object>)  rMap.get("message");
+
+        Map<String, String> resultMap = (Map<String, String>)  messageMap.get("result");
+
+        log.info("resultMap : " + resultMap);
+
+        String srcLangType = CmmUtil.nvl(resultMap.get("srcLangType"));
+        String tarLangType = CmmUtil.nvl(resultMap.get("tarLangType"));
+        String translatedText = CmmUtil.nvl(resultMap.get("translatedText"));
+
+        log.info("srcLangType : " + srcLangType);
+        log.info("tarLangType : " + tarLangType);
+        log.info("translatedText : " + translatedText);
+
+        rDTO = new PapagoDTO();
+        rDTO.setText(text);
+        rDTO.setTranslatedText(translatedText);
+        rDTO.setScrLangType(srcLangType);
+        rDTO.setTarLangType(tarLangType);
+
+        resultMap = null;
+        messageMap = null;
+        rMap = null;
+
+        log.info(this.getClass().getName() + ".translate End!");
+
+        return rDTO;
+    }
+
+
 }
 

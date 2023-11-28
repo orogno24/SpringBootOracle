@@ -20,7 +20,7 @@ import java.util.Map;
 @EnableWebSocket
 @RequiredArgsConstructor
 @Configuration
-public class WebSoketConfig implements WebSocketConfigurer {
+public class WebSocketConfig implements WebSocketConfigurer {
 
     private final ChatHandler chatHandler;
 

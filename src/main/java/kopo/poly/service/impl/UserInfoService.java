@@ -201,8 +201,6 @@ public class UserInfoService implements IUserInfoService {
                     + CmmUtil.nvl(rDTO.getUserName()) + "님이 로그인하였습니다.");
 
             mailService.doSendMail(mDTO);
-
-
         }
 
         log.info(this.getClass().getName() + ".getLogin End!");

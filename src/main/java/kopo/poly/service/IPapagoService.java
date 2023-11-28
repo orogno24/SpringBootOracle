@@ -1,12 +1,17 @@
 package kopo.poly.service;
 
-import kopo.poly.dto.FoodDTO;
-import kopo.poly.dto.OcrDTO;
 
-import java.util.List;
+import kopo.poly.dto.PapagoDTO;
 
-public interface IOcrService {
+public interface IPapagoService {
 
-    OcrDTO getReadforImageText(OcrDTO pDTO) throws Exception;
+    String detectLangsApiURL = "https://openapi.naver.com/v1/papago/detectLangs";
+    String translateApiURL = "https://openapi.naver.com/v1/papago/n2mt";
+
+    PapagoDTO detectLangs(PapagoDTO pDTO) throws Exception;
+
+    PapagoDTO detectlangs(PapagoDTO pDTO) throws Exception;
+
+    PapagoDTO translate(PapagoDTO pDTO) throws Exception;
 
 }

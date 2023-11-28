@@ -1,117 +1,89 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-         pageEncoding="UTF-8" %>
-<%@ page import="kopo.poly.util.CmmUtil" %>
-
-<%
-    String roomName = CmmUtil.nvl(request.getParameter("roomName"));
-
-    String userName = CmmUtil.nvl(request.getParameter("userName"));
-%>
-<html>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title><%=roomName%> 채팅방 입장 </title>
+    <title>글로벌 채팅방 입장 및 채팅 리스트</title>
     <link rel="stylesheet" href="/css/table.css"/>
     <script type="text/javascript" src="/js/jquery-3.6.0.min.js"></script>
     <script type="text/javascript">
 
-        let data = {};
-        let ws;
-        const roomName = "<%=roomName%>"
-        const userName = "<%=userName%>"
-
+        // HTML로딩이 완료되고, 실행됨
         $(document).ready(function () {
 
-            if (ws !== undefined && ws.readyState !== WebSocket.CLOSED) {
-                console.log("WebSocket is already opened.")
-                return;
-            }
+            //화면 로딩이 완료되면 첫번째로 실행함
+            getRoomList(); //전체 채팅방 리스트 가져오기
 
-            ws = new WebSocket("ws://" + location.host + "/ws/" + roomName + "/" + userName);
+            //2번쨰부터 채팅방 전체리스트를 5초마다 로딩함
+            setInterval("getRoomList()", 5000);
 
-            ws.onopen = function (event) {
-                if (event.data === undefined)
-                    return;
+        })
 
-                console.log(event.data)
-            };
+        //전체 채팅방 리스트 가져오기
+        function getRoomList() {
 
-            ws.onmessage = function (msg) {
+            //Ajax 호출
+            $.ajax({
+                url: "/global/roomList", // 채팅방 정보 가져올 URL
+                type: "post", // 전송방식
+                dataType: "JSON", // 전달받을 데이터 타입
+                success: function (json) {
 
-                let data = JSON.parse(msg.data);
+                    // 기존 데이터 삭제하기
+                    $("#room_list").empty();
 
-                if (data.name === userName) {
-                    $("#chat").append("<div>");
-                    $("#chat").append("<span style='color: blue'><b>[보낸 사람] : </b></span>");
-                    $("#chat").append("<span style='color: blue'> 나 </span>");
-                    $("#chat").append("<span style='color: blue'><b>[발송 메시지] : </b></span>");
-                    $("#chat").append("<span style='color: blue'>" + data.msg + " </span>");
-                    $("#chat").append("<span style='color: blue'><b>[발송시간] : </b></span>");
-                    $("#chat").append("<span style='color: blue'>" + data.date + " </span>");
-                    $("#chat").append("</div>");
-                } else if (data.name === "관리자") {
-                        $("#chat").append("<div>");
-                        $("#chat").append("<span style='color: red'><b>[보낸 사람] : </b></span>");
-                        $("#chat").append("<span style='color: red'> 나 </span>");
-                        $("#chat").append("<span style='color: red'><b>[발송 메시지] : </b></span>");
-                        $("#chat").append("<span style='color: red'>" + data.msg + " </span>");
-                        $("#chat").append("<span style='color: red'><b>[발송시간] : </b></span>");
-                        $("#chat").append("<span style='color: red'>" + data.date + " </span>");
-                        $("#chat").append("</div>");
-                } else {
-                    $("#chat").append("<div>");
-                    $("#chat").append("<span><b>[보낸 사람] : </b></span>");
-                    $("#chat").append("<span> 나 </span>");
-                    $("#chat").append("<span><b>[발송 메시지] : </b></span>");
-                    $("#chat").append("<span>" + data.msg + " </span>");
-                    $("#chat").append("<span><b>[발송시간] : </b></span>");
-                    $("#chat").append("<span>" + data.date + " </span>");
-                    $("#chat").append("</div>");
+                    for (let i = 0; i < json.length; i++) {
+                        $("#room_list").append(json[i] + "<br/>"); // 채팅방마다 한줄씩 추가
+
+                    }
                 }
+            })
 
-                $("#btnSend").on("click", function () {
-                    data.name = userName;
-                    data.msg = $("msg").val();
-
-                    let chatMsg = JSON.stringify(data);
-
-                    ws.send(chatMsg);
-
-                    $("#msg").val("")
-                })
-            }
-        });
+        }
     </script>
 </head>
 <body>
-<h1><%=userName%>님! <%=roomName%> 입장을 환영합니다.</h1>
-<hr/>
-<br/><br/>
-
+<h1>글로벌 채팅방 전체 리스트</h1>
 <div class="divTable minimalistBlack">
     <div class="divTableHeading">
         <div class="divTableRow">
-            <div class="divTableHead">대화 내용</div>
+            <div class="divTableHead">대화가능한 채팅방들</div>
         </div>
     </div>
     <div class="divTableBody">
         <div class="divTableRow">
-            <div class="divTableCell" id="chat"></div>
+            <div class="divTableCell" id="room_list"></div>
         </div>
     </div>
 </div>
 <br/><br/>
-<div class="divTable minimalistBlack">
-    <div class="divTableBody">
-        <div class="divTableRow">
-            <div class="divTableCell">전달할 메시지</div>
-            <div class="divTableCell">
-                <input type="text" id="msg">
-                <button id="btnSend">메시지 전송</button>
+<h1>글로벌 채팅방 입장 정보</h1>
+<hr/>
+<br/><br/>
+<form name="f" id="f" method="post" action="/global/chatroom">
+    <div class="divTable minimalistBlack">
+        <div class="divTableBody">
+            <div class="divTableRow">
+                <div class="divTableCell">채팅방 이름</div>
+                <div class="divTableCell">
+                    <input type="text" name="roomName">
+                </div>
+                <div class="divTableCell">대화명(별명)</div>
+                <div class="divTableCell">
+                    <input type="text" name="userName">
+                </div>
+                <div class="divTableCell">채팅창에 표시할 언어</div>
+                <div class="divTableCell">
+                    <select name="langCode">
+                        <option value="ko">한국어</option>
+                        <option value="en">영어</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
-</div>
+    <div>
+        <button>입장하기</button>
+    </div>
+</form>
 </body>
 </html>

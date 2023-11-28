@@ -1,7 +1,9 @@
 package kopo.poly.controller;
 
 import kopo.poly.dto.OcrDTO;
+import kopo.poly.dto.PapagoDTO;
 import kopo.poly.service.IOcrService;
+import kopo.poly.service.IPapagoService;
 import kopo.poly.util.CmmUtil;
 import kopo.poly.util.DateUtil;
 import kopo.poly.util.FileUtil;
@@ -12,93 +14,58 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.util.Optional;
 
 @Slf4j
-@RequestMapping(value = "/ocr")
+@RequestMapping(value = "papago")
 @RequiredArgsConstructor
-@Controller
-public class OcrController {
+@RestController
+public class PapagoController {
 
-    private final IOcrService ocrService;
+    private final IPapagoService papagoService;
 
-    final private String FILE_UPLOAD_SAVE_PATH = "c:/upload";
 
-    @GetMapping(value = "uploadImage")
-    public String uploadImage() {
-        log.info(this.getClass().getName() + "uploadImage!");
-
-        return "/ocr/uploadImage";
-    }
-
-    /**
-     * 파일업로드 및 이미지 인식
-     * RequestParam은 쪼개질 대상을 선택
-     * MultipartFile는 패킷 단위로 쪼개진 이미지를 합치는 용도
-     */
-    @PostMapping(value = "readImage")
-    public String readImage(ModelMap model, @RequestParam(value = "fileUpload")MultipartFile mf)
+    @PostMapping(value = "detectLangs")
+    public PapagoDTO detectLangs(HttpServletRequest request)
             throws Exception {
 
-        log.info(this.getClass().getName() + ".readImage Start!");
+        log.info(this.getClass().getName() + ".detectLangs Start!");
 
-        // OCR 실행 결과
-        String res = "";
+        String text = CmmUtil.nvl(request.getParameter("text"));
 
-        // 업로드하는 실제 파일명
-        // 다운로드 기능 구현시, 임의로 정의된 파일명을 원래대로 만들어주기 위한 목적
-        String originalFileName = mf.getOriginalFilename();
+        log.info("text : " + text);
 
-        // 파일 확장자 가져오기(파일 확장자를 포함한 전체 이름(myimage.jpg)에서 뒤쪽부터 .이 존재하는 위치 찾기
-        String ext = originalFileName.substring(originalFileName.lastIndexOf(".") + 1,
-                originalFileName.length()).toLowerCase();
+        PapagoDTO pDTO = new PapagoDTO();
+        pDTO.setText(text);
 
-        // 이미지 파일만 실행되도록 함
-        if (ext.equals("jpeg") || ext.equals("jpg") || ext.equals("gif") || ext.equals("png")) {
+        PapagoDTO rDTO = Optional.ofNullable(papagoService.detectLangs(pDTO)).orElseGet(PapagoDTO::new);
 
-            // 웹서버에 저장되는 파일 이름
-            // 업로드하는 파일 이름에 한글, 특수 문자들이 저장될 수 있기 때문에 강제로 영어와 숫자로 구성된 파일명으로 변경해서 저장한다.
-            // 리눅스나 유닉스 등 운영체제는 다국어 지원에 취약하기 때문이다.
-            String saveFileName = DateUtil.getDateTime("HHmmss") + "." + ext;
+        log.info(this.getClass().getName() + ".detectLangs End!");
 
-            // 웹서버에 업록드한 파일 저장하는 물리적 경로
-            String saveFilePath = FileUtil.mkdirForDate(FILE_UPLOAD_SAVE_PATH);
+        return rDTO;
 
-            String fullFileInfo = saveFilePath + "/" + saveFileName;
+    }
 
-            log.info("ext : " + ext);
-            log.info("saveFileName : " + saveFileName);
-            log.info("saveFilePath : " + saveFilePath);
-            log.info("fullFileInfo : " + fullFileInfo);
+    @PostMapping(value = "translate")
+    public PapagoDTO translate(HttpServletRequest request)
+            throws Exception {
 
-            // 업로드 되는 파일을 서버에 저장
-            mf.transferTo(new File(fullFileInfo));
+        log.info(this.getClass().getName() + ".translate Start!");
 
-            OcrDTO pDTO = new OcrDTO();
+        String text = CmmUtil.nvl(request.getParameter("text"));
 
-            pDTO.setFileName(saveFileName);
-            pDTO.setFilePath(saveFilePath);
-            pDTO.setExt(ext);
-            pDTO.setOrgFileName(originalFileName);
-            pDTO.setRegId("admin");
+        log.info("text : " + text);
 
-            // ocrService.getReadforImageText(pDTO) 결과를 Null 값 체크하여 rDTO 객체에 저장하기
-            OcrDTO rDTO = Optional.ofNullable(ocrService.getReadforImageText(pDTO)).orElseGet(OcrDTO::new);
+        PapagoDTO pDTO = new PapagoDTO();
+        pDTO.setText(text);
 
-            res = CmmUtil.nvl(rDTO.getTextFromImage()); // 인식 결과
+        PapagoDTO rDTO = Optional.ofNullable(papagoService.translate(pDTO)).orElseGet(PapagoDTO::new);
 
-            rDTO = null;
-            pDTO = null;
-        } else {
-            res = "이미지 파일이 아니라서 인식이 불가능합니다.";
-        }
+        log.info(this.getClass().getName() + ".translate End!");
 
-        model.addAttribute("res", res);
-
-        log.info(this.getClass().getName() + "readImage End!");
-
-        return "ocr/readImage";
+        return rDTO;
     }
 
 }

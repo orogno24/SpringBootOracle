@@ -2,41 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>네이버 파파고를 이용한 입력된 언어 종류 찾기</title>
+    <title>네이버 파파고를 이용한 한글->영어, 영어->한글 번역</title>
     <link rel="stylesheet" href="/css/table.css">
     <script src="/js/jquery-3.6.0.min.js"></script>
     <script>
 
         $(document).ready(function () {
             $("#btnSend").on("click", function () {
-                detectLangs();
+                translate();
             })
         })
 
-        function detectLangs() {
+        function translate() {
 
             $.ajax({
-                url: "/papago/detectLangs",
+                url: "/papago/translate",
                 type: "post",
                 dataType: "JSON",
                 data: $("#f").serialize(),
                 success: function (json) {
 
                     let text = json.text;
-                    let langCode = json.langCode;
-                    let lang = "";
+                    let translatedText = json.translatedText;
+                    let tarLangType = json.tarLangType;
+                    let tarLang = "";
 
-                    if (langCode === "ko") {
-                        lang = "한국어";
-                    } else if (langCode === "en") {
-                        lang = "영어";
-                    } else {
-                        lang = "기타";
+                    if (tarLangType === "ko") {
+                        tarLang = "한글 번역";
+                    } else if (tarLangType === "en") {
+                        tarLang = "영어 번역";
                     }
 
                     $("#contents").append("<div class=\"divTableRow\">");
                     $("#contents").append("<div class=\"divTableCell\">" + text + "</div>");
-                    $("#contents").append("<div class=\"divTableCell\">" + lang + "</div>");
+                    $("#contents").append("<div class=\"divTableCell\">" + tarLang + "</div>");
+                    $("#contents").append("<div class=\"divTableCell\">" + translatedText + "</div>");
                     $("#contents").append("</div>");
                 }
             });
@@ -45,7 +45,7 @@
     </script>
 </head>
 <body>
-<h2>네이버 파파고를 이용한 언어 감지</h2>
+<h2>네이버 파파고를 이용한 한글->영어, 영어->한글 번역</h2>
 <hr/>
 <br/>
 <form name="f" id="f">
@@ -58,18 +58,19 @@
         </div>
     </div>
     <div>
-        <button id="btnSend" type="button">언어 감지하기</button>
+        <button id="btnSend" type="button">번역하기</button>
     </div>
 </form>
 <br/><br/>
-<h2>언어 감지 결과</h2>
+<h2>언어 번역 결과</h2>
 <hr/>
 <br/>
 <div class="divTable minimalistBlack">
     <div class="divTableHeading">
         <div class="divTableRow">
-            <div class="divTableHead" style="width: 70%">원문</div>
-            <div class="divTableHead" style="width: 30%">언어종류</div>
+            <div class="divTableHead" style="width: 40%">원문</div>
+            <div class="divTableHead" style="width: 30%">번역 언어</div>
+            <div class="divTableHead" style="width: 30%">번역 내용</div>
         </div>
     </div>
     <div class="divTableBody" id="contents">

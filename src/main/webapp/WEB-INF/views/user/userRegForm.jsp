@@ -66,7 +66,6 @@
         }
 
         function emailExists(f) {
-
             if (f.email.value === "") {
                 alert("이메일을 입력하세요.");
                 f.email.focus();

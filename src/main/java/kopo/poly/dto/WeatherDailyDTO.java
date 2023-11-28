@@ -1,20 +1,20 @@
 package kopo.poly.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
-@Setter
 @Getter
-@JsonInclude(JsonInclude.Include.NON_DEFAULT)
-public class WeatherDTO {
+@Setter
+public class WeatherDailyDTO {
 
-    private String lat;
-    private String lon;
-    private double currentTemp;
+    private String day;
+    private String sunrise;
+    private String sunset;
+    private String moonrise;
+    private String moonset;
+    private String dayTemp;
+    private String dayTempMax;
+    private String dayTempMin;
 
-    private List<WeatherDailyDTO> dailyList;
 
 }

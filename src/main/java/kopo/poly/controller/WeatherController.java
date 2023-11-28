@@ -4,13 +4,16 @@ import kopo.poly.dto.FoodDTO;
 import kopo.poly.dto.WeatherDTO;
 import kopo.poly.service.IFoodService;
 import kopo.poly.service.IWeatherService;
+import kopo.poly.util.CmmUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -18,22 +21,32 @@ import java.util.Optional;
 @Slf4j
 @RequestMapping(value = "/weather")
 @RequiredArgsConstructor
-@Controller
+@RestController
 public class WeatherController {
     private final IWeatherService weatherService;
 
-    @GetMapping(value = "toDayWeather")
-    public String collectWeather(ModelMap model) throws Exception {
+    @GetMapping(value = "getWeather")
+    public WeatherDTO getWeather(HttpServletRequest request) throws Exception {
 
-        log.info(this.getClass().getName() + ".collectWeather Start!");
+        log.info(this.getClass().getName() + ".getWeather Start!");
 
-        List<WeatherDTO> rList = Optional.ofNullable(weatherService.toDayWeather()).orElseGet(ArrayList::new);
+        String lat = CmmUtil.nvl(request.getParameter("lat"));
+        String lon = CmmUtil.nvl(request.getParameter("lon"));
 
-        model.addAttribute("rList", rList);
+        WeatherDTO pDTO = new WeatherDTO();
+        pDTO.setLat(lat);
+        pDTO.setLon(lon);
 
-        log.info(this.getClass().getName() + ".collectWeather End!");
+        WeatherDTO rDTO = weatherService.getWeather(pDTO);
 
-        return "/weather/todayWeather";
+        if (rDTO == null) {
+            rDTO = new WeatherDTO();
+
+        }
+
+        log.info(this.getClass().getName() + ".getWeather End!");
+
+        return rDTO;
     }
 
 }
